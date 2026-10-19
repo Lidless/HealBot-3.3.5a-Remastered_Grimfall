@@ -837,4 +837,7 @@ function HealBot_Init_SmartCast()
     elseif strsub(HealBot_PlayerClassEN,1,4)=="SHAM" then
         SmartCast_Res=HEALBOT_ANCESTRALSPIRIT;
     end
+    if HealBot_Custom and HealBot_Custom.res then
+        SmartCast_Res=HealBot_Custom.res;
+    end
 end

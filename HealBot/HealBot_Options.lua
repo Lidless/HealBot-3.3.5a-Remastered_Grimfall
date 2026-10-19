@@ -192,7 +192,7 @@ local HealBot_Buff_Spells_Class_List={}
 local HealBot_Buff_Spells_List ={}
 
 function HealBot_Options_InitBuffClassList()
-    HealBot_Buff_Spells_Class_List = HealBot_Buff_Spells_Total_List[strsub(HealBot_PlayerClassEN,1,4)]
+    HealBot_Buff_Spells_Class_List = (HealBot_Custom_AddToList and HealBot_Custom_AddToList(HealBot_Buff_Spells_Total_List[strsub(HealBot_PlayerClassEN,1,4)], "buffs")) or HealBot_Buff_Spells_Total_List[strsub(HealBot_PlayerClassEN,1,4)] or {}
     table.sort (HealBot_Buff_Spells_Class_List)
 end
 
@@ -252,6 +252,7 @@ local HealBot_Racial_Debuff_Spells = {
   ["Tau"] = {},
   ["Tro"] = {}, 
   ["Blo"] = {},
+  ["Gob"] = {}, -- Goblin (custom 3.3.5 servers)
 }
 
 local HealBot_Debuff_Types = {
@@ -3550,7 +3551,7 @@ end
 
 function HealBot_Options_Class_HoTctlAction_Refresh(onselect)
     if not onselect then HealBot_Options_Class_HoTctlAction_Initialize() end  -- or wrong menu may be used !
-    local hbClass=strsub(HealBot_PlayerClassEN,1,4)
+    local hbClass=HealBot_EnsureClassDefaults()
     UIDropDownMenu_SetSelectedID(HealBot_Options_Class_HoTctlAction,HealBot_Globals.WatchHoT[hbClass][HealBot_Globals.HoTname])
 end
 
@@ -3560,7 +3561,7 @@ function HealBot_Options_Class_HoTctlAction_OnLoad(self)
 end
 
 function HealBot_Options_Class_HoTctlAction_OnSelect(self)
-    local hbClass=strsub(HealBot_PlayerClassEN,1,4)
+    local hbClass=HealBot_EnsureClassDefaults()
     HealBot_Globals.WatchHoT[hbClass][HealBot_Globals.HoTname]=self:GetID()
     HealBot_Options_Class_HoTctlAction_Refresh(true)
     HealBot_setOptions_Timer(170)
@@ -5477,11 +5478,12 @@ local HealBot_Debuff_RangeWarning_List = {
     HEALBOT_SPELL_RANGE,
 }
 function HealBot_Options_GetDebuffSpells_List(class)
-    return HealBot_Debuff_Spells[class]
+    if HealBot_Custom_AddToList then return HealBot_Custom_AddToList(HealBot_Debuff_Spells[class], "dispels") end
+    return HealBot_Debuff_Spells[class] or {}
 end
 
 function HealBot_Options_GetRacialDebuffSpells_List(race)
-    return HealBot_Racial_Debuff_Spells[race]
+    return HealBot_Racial_Debuff_Spells[race] or {}
 end
 
 local DebuffSpells_List=nil
@@ -6439,8 +6441,9 @@ function HealBot_Options_Debuff_Reset()
                     sName=DebuffTextClass[HealBot_Options_getDropDownId_bySpec(k)];
                 end
             end
-            if HealBot_Debuff_Types[sName] then
-                table.foreach(HealBot_Debuff_Types[sName], function (i,dName)
+            local hbDebuffTypes=HealBot_Debuff_Types[sName] or (HealBot_Custom_DebuffTypes and HealBot_Custom_DebuffTypes(sName))
+            if hbDebuffTypes then
+                table.foreach(hbDebuffTypes, function (i,dName)
                     
                     if not HealBot_DebuffSpell[dName] then
                         HealBot_DebuffSpell[dName]=sName;

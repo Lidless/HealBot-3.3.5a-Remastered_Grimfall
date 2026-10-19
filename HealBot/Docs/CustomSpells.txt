@@ -1,0 +1,34 @@
+HealBot - Custom Spells (custom classes, Conquest of Azeroth, classless realms)
+=====================================================================
+
+What is this?
+HealBot only knows the spells of the 10 original classes. For custom classes (e.g. Conquest of Azeroth) and classless characters it reads your spellbook tooltips and guesses what each spell is good for. Here you can check the guess and change it.
+
+Opening the window
+- Click 'Custom Spells' next to the 'Other' tab of HealBot Options, or
+- type /hb cs (also prints the current result to chat).
+
+Use as  (left-click: next, right-click: previous)
+- Auto: detected from the tooltip, e.g. 'Auto: HoT'. 'Auto: -' means not used.
+- HoT (mine): show an icon on the bars while YOUR cast is active.
+- HoT (all): show an icon for anyone's cast of this spell.
+- Dispel: this spell removes debuffs from friends. Tick the types it removes: M = Magic, C = Curse, P = Poison, D = Disease.
+- Buff: long buff; appears in Options > Buffs, so HealBot can warn when it is missing.
+- Resurrect: used by Smart Cast on dead players.
+- Ignore: HealBot never uses this spell.
+
+After setting a spell
+- Dispels: pick the spell in Options > Debuffs (Cure spell 1-3).
+- Buffs: pick the spell in Options > Buffs.
+- Healing on click: type the spell name in Options > Spells (any spellbook spell or macro works).
+
+Good to know
+- Changes apply at once, no reload needed.
+- Settings are saved per class AND realm, so your CoA and classless characters don't mix.
+- Hover a spell name to see its tooltip.
+- 'Rescan' re-reads the spellbook (e.g. after learning new spells).
+- 'Reset all to Auto' clears your settings for this class.
+- The original 10 classes are not auto-detected; manual settings still work for them.
+
+Advanced: HealBot_Custom.lua also has a HealBot_Custom_Overrides table for
+file-based overrides. You normally don't need it; the in-game window is enough.

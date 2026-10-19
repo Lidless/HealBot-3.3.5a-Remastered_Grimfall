@@ -804,6 +804,7 @@ HEALBOT_HELP={ [1] = "[HealBot] /hb h -- Display help",
                [8] = "[HealBot] /hb dt -- Toggle Debuff Monitor between disabled and enabled",
                [9] = "[HealBot] /hb skin <skinName> -- Switch Skins",
                [10] = "[HealBot] /hb tr <Role> -- Set highest role priority for SubSort by Role. Valid Roles are 'TANK', 'HEALER' or 'DPS'",
+               [11] = "[HealBot] /hb cs -- Custom Spells window: set how HealBot uses each spell (HoT, dispel, buff, resurrect). Click Help in the window for details",
               }
               
 HEALBOT_OPTION_HIGHLIGHTACTIVEBAR       = "Highlight mouseover"

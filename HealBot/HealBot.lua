@@ -561,6 +561,14 @@ function HealBot_SlashCmd(HBcmd)
         HealBot_Action_Reset()
     elseif (HBcmd=="cb") then
         HealBot_Panel_ClearBlackList()
+    elseif (HBcmd=="cs" or HBcmd=="customspells") then
+        if HealBot_Custom_Refresh then
+            HealBot_Custom_Refresh()
+            HealBot_Custom_Report()
+            HealBot_Custom_Toggle()
+        else
+            DEFAULT_CHAT_FRAME:AddMessage("HealBot: Custom Spells is not loaded. Exit and restart the WoW client (a /reload does not load new addon files).")
+        end
     elseif (HBcmd=="cspells") then
         HealBot_Copy_SpellCombos()
     elseif (HBcmd=="rspells") then
@@ -1689,6 +1697,11 @@ function HealBot_OnEvent_VariablesLoaded(self)
     HealBot_PlayerRace, HealBot_PlayerRaceEN=UnitRace("player")
     HealBot_PlayerName=UnitName("player")
     HealBot_InitSpells()
+    if HealBot_Custom_CreateOptionsButton then
+        HealBot_Custom_CreateOptionsButton()
+    else
+        DEFAULT_CHAT_FRAME:AddMessage("HealBot: Custom Spells is not loaded. Exit and restart the WoW client (a /reload does not load new addon files).")
+    end
     HealBot_Options_InitBuffClassList()
     HealBot_Vers[HealBot_PlayerName]=HEALBOT_VERSION
 	HealBot_luVars["TargetUnitID"]="player"
@@ -1881,8 +1894,87 @@ function HealBot_Load(hbCaller)
     HealBot_Set_Timers()
 end
 
+-- Custom/unknown classes (e.g. private-server races or classes): HealBot only
+-- ships defaults for the 10 WotLK classes. Unknown class tokens get a copy of
+-- the Warrior defaults so nothing indexes a nil table.
+local function HealBot_CopyTable(t)
+    local c={}
+    for k,v in pairs(t) do
+        if type(v)=="table" then c[k]=HealBot_CopyTable(v) else c[k]=v end
+    end
+    return c
+end
+
+-- Settings key for the player's class.
+-- * Original WotLK classes (token AND English class name match, e.g. DRUID/"Druid")
+--   keep HealBot's 4-letter keys (DRUI, PRIE, ...), so existing settings stay valid.
+-- * Anything else (custom classes, or reused tokens such as DRUID="Hero" or
+--   MONK="Templar" on Grimfal CoA/classless realms) gets its own key:
+--   TOKEN-ClassName@Realm, e.g. "DRUID-Hero@Grimfal CoA". This keeps different
+--   custom classes (WITCHDOCTOR/WITCHHUNTER) and different realms apart.
+local HealBot_BaseClassKeys={DRUI=true,HUNT=true,MAGE=true,PALA=true,PRIE=true,
+                             ROGU=true,SHAM=true,WARL=true,WARR=true,DEAT=true}
+function HealBot_IsBaseClassKey(key)
+    return HealBot_BaseClassKeys[key] and true or false
+end
+
+local HealBot_PlayerClassKey=nil
+function HealBot_GetPlayerClassKey()
+    if HealBot_PlayerClassKey then return HealBot_PlayerClassKey end
+    local locName,token=UnitClass("player")
+    if not token or token=="" then return "WARR" end
+    local k4=strsub(token,1,4)
+    if HealBot_BaseClassKeys[k4] and HealBot_Class_En[locName]==k4 then
+        HealBot_PlayerClassKey=k4
+    else
+        local realm=GetRealmName() or ""
+        if realm=="" then return token end  -- realm not known yet, don't cache
+        HealBot_PlayerClassKey=token.."-"..gsub(locName or "", " ", "").."@"..realm
+    end
+    return HealBot_PlayerClassKey
+end
+
+-- Makes sure the player's class has HoT watch settings. The argument is kept
+-- for compatibility with old callers; the key always comes from the player.
+function HealBot_EnsureClassDefaults(class)
+    local key=HealBot_GetPlayerClassKey()
+    if HealBot_BaseClassKeys[key] then
+        if HealBot_Globals and HealBot_Globals.WatchHoT and not HealBot_Globals.WatchHoT[key] then
+            HealBot_Globals.WatchHoT[key]=HealBot_CopyTable(HealBot_GlobalsDefaults.WatchHoT[key])
+        end
+        return key
+    end
+    local k4=strsub(key,1,4)
+    local base=HealBot_BaseClassKeys[k4] and k4 or "WARR"
+    if not HealBot_GlobalsDefaults.WatchHoT[key] then
+        HealBot_GlobalsDefaults.WatchHoT[key]=HealBot_CopyTable(HealBot_GlobalsDefaults.WatchHoT[base])
+        HealBot_GlobalsDefaults.HoTReserve[key]=HealBot_CopyTable(HealBot_GlobalsDefaults.HoTReserve[base])
+    end
+    if HealBot_Globals then
+        if not HealBot_Globals.WatchHoT then HealBot_Globals.WatchHoT={} end
+        if not HealBot_Globals.WatchHoT[key] then
+            -- seed from the settings this character used so far (e.g. DRUI for
+            -- a Hero), otherwise from the defaults
+            local src=HealBot_Globals.WatchHoT[base] or HealBot_GlobalsDefaults.WatchHoT[key]
+            HealBot_Globals.WatchHoT[key]=HealBot_CopyTable(src)
+            if DEFAULT_CHAT_FRAME then
+                DEFAULT_CHAT_FRAME:AddMessage("HealBot: new class settings '"..key.."' (based on "..base..").")
+            end
+        end
+        if HealBot_Globals.HoTReserve and not HealBot_Globals.HoTReserve[key] then
+            HealBot_Globals.HoTReserve[key]=HealBot_CopyTable(HealBot_Globals.HoTReserve[base] or HealBot_GlobalsDefaults.HoTReserve[key])
+        end
+    end
+    return key
+end
+
+function HealBot_Custom_ApplyHoTsNow()
+    if HealBot_Custom_ApplyHoTs then HealBot_Custom_ApplyHoTs(HealBot_Watch_HoT) end
+end
+
 local hbClassHoTwatch={}
 function HealBot_configClassHoT(class, race)
+    class=HealBot_EnsureClassDefaults()
     hbClassHoTwatch=HealBot_Globals.WatchHoT[class]
 
     if hbClassHoTwatch[HEALBOT_GUARDIAN_SPIRIT]==3 then
@@ -2396,6 +2488,7 @@ function HealBot_configClassHoT(class, race)
     else
         HealBot_Watch_HoT[HEALBOT_FOUNTAIN_OF_LIGHT]=nil
     end
+    if HealBot_Custom_ApplyHoTs then HealBot_Custom_ApplyHoTs(HealBot_Watch_HoT) end
 end
 
 function HealBot_Register_Events()
@@ -3571,7 +3664,7 @@ function HealBot_CheckUnitDebuffs(hbGUID)
                         elseif HealBot_Config.IgnoreNonHarmfulDebuffs==1 and HealBot_Ignore_NonHarmful_Debuffs[dName] then
                             checkthis=false;
                         elseif HealBot_Config.IgnoreClassDebuffs==1 then
-                            HealBot_Ignore_Debuffs_Class=HealBot_Ignore_Class_Debuffs[strsub(DebuffClass,1,4)];
+                            HealBot_Ignore_Debuffs_Class=HealBot_Ignore_Class_Debuffs[strsub(DebuffClass or "",1,4)] or {};
                             if HealBot_Ignore_Debuffs_Class[dName] then
                                 checkthis=false;
                             end
@@ -5416,6 +5509,10 @@ function HealBot_InitSpells()
     HealBot_Action_SetrSpell()
     HealBot_AddDebug("Initiated HealBot with ".. z .." Spells");
     HealBot_Options_CheckCombos();
+    if HealBot_Custom_Scan then
+        HealBot_Custom_Scan();
+        HealBot_Custom_ApplyHoTs(HealBot_Watch_HoT);
+    end
     HealBot_Init_SmartCast();
 end
 
@@ -5860,8 +5957,7 @@ function HealBot_Update_Skins()
         HealBot_Update_BuffsForSpec()
     end
     
-    local _,class=UnitClass("player")
-    class=strsub(class,1,4)
+    local class=HealBot_EnsureClassDefaults()
     local hbClassHoTwatchDef=HealBot_GlobalsDefaults.WatchHoT[class]
    -- hbClassHoTwatch=HealBot_Globals.WatchHoT[class]
     

@@ -2478,9 +2478,13 @@ function HealBot_Action_ClassColour(hbGUID, unit)
     elseif hbGUID and HealBot_UnitID[hbGUID] and UnitClass(HealBot_UnitID[hbGUID]) then
         _,class=UnitClass(HealBot_UnitID[hbGUID])        
     end
+    if class and not hbClassCols[strsub(class,1,4)] and RAID_CLASS_COLORS and RAID_CLASS_COLORS[class] then
+        return RAID_CLASS_COLORS[class].r, RAID_CLASS_COLORS[class].g, RAID_CLASS_COLORS[class].b
+    end
     if class then
         class = strsub(class,1,4)
-    else
+    end
+    if not class or not hbClassCols[class] then
         class = "WARR"
     end
     return hbClassCols[class].r, hbClassCols[class].g, hbClassCols[class].b

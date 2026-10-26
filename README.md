@@ -35,7 +35,8 @@ The original HealBot only knows the 10 WotLK classes and races. On Grimfall it b
 
 **Custom Spells – HealBot learns your spells**
 - For custom classes HealBot reads your spellbook tooltips (English client) and detects
-  HoTs/absorb shields, friendly dispels, long buffs and resurrection spells.
+  heals, HoTs/absorb shields, friendly dispels, long buffs and resurrection spells.
+- Heals and HoTs appear in **Options → Spells → Healing spells**, ready to bind to a click.
 - Everything can be checked and changed in-game in the **Custom Spells** window – no file editing.
 
 ## Installation
@@ -58,6 +59,7 @@ For each spell in your spellbook choose **Use as** (left-click: next, right-clic
 | Setting | Meaning |
 |---|---|
 | Auto | Detected from the spell tooltip, e.g. `Auto: HoT`. `Auto: -` = not used. |
+| Heal | A healing spell; listed in Options → Spells → Healing spells. |
 | HoT (mine) | Show an icon on the bars while **your** cast is active. |
 | HoT (all) | Show an icon for anyone's cast of this spell. |
 | Dispel | Removes debuffs from friends. Tick the types: **M**agic, **C**urse, **P**oison, **D**isease. |
@@ -66,9 +68,10 @@ For each spell in your spellbook choose **Use as** (left-click: next, right-clic
 | Ignore | HealBot never uses this spell. |
 
 After setting a spell:
+- **Heals and HoTs:** pick the spell in Options → Spells → *Healing spells*, then **Select**.
 - **Dispels:** pick the spell in Options → Cure.
 - **Buffs:** pick the spell in Options → Buffs.
-- **Healing on click:** type the spell name in Options → Spells (any spellbook spell or macro works).
+- Any spellbook spell or macro can also be typed in Options → Spells.
 
 Changes apply immediately. **Rescan** re-reads the spellbook after you learn new spells;
 **Reset all to Auto** clears your settings for the current class.

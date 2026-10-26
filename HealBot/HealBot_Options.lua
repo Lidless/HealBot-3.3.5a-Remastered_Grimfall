@@ -2888,6 +2888,13 @@ local HealBot_Options_SelectHealSpellsCombo_List = {
 }
 local hbHelpHealSelect=nil
 local hbHealDDlist=nil
+local hbOtherDDlist=nil
+-- Custom Spells: rebuild the Spells tab dropdowns after spell settings change
+function HealBot_Options_ResetSpellDDlists()
+    hbHealDDlist=nil
+    hbOtherDDlist=nil
+    hbHelpHealSelect=nil
+end
 function HealBot_Options_SelectHealSpellsCombo_DropDown()
     if getn(hbHealDDlist)>0 then
         for j=1, getn(hbHealDDlist), 1 do
@@ -2916,6 +2923,9 @@ function HealBot_Options_SelectHealSpellsCombo_DDlist()
         if HealBot_GetSpellId(HealBot_Options_SelectHealSpellsCombo_List[j]) then
             table.insert(hbHealDDlist, HealBot_Options_SelectHealSpellsCombo_List[j])
         end
+    end
+    if HealBot_Custom_AddToList then
+        hbHealDDlist = HealBot_Custom_AddToList(hbHealDDlist, "heals")
     end
     table.sort(hbHealDDlist)
 end
@@ -2978,7 +2988,6 @@ local HealBot_Options_SelectOtherSpellsCombo_List = {
     HEALBOT_INNER_FOCUS,
 }
 local hbHelpOtherSelect=nil
-local hbOtherDDlist=nil
 
 function HealBot_Options_SelectOtherSpellsCombo_DropDown()
     if getn(hbOtherDDlist)>0 then

@@ -10,6 +10,7 @@ Opening the window
 
 Use as  (left-click: next, right-click: previous)
 - Auto: detected from the tooltip, e.g. 'Auto: HoT'. 'Auto: -' means not used.
+- Heal: a healing spell; appears in Options > Spells > Healing spells.
 - HoT (mine): show an icon on the bars while YOUR cast is active.
 - HoT (all): show an icon for anyone's cast of this spell.
 - Dispel: this spell removes debuffs from friends. Tick the types it removes: M = Magic, C = Curse, P = Poison, D = Disease.
@@ -18,9 +19,10 @@ Use as  (left-click: next, right-click: previous)
 - Ignore: HealBot never uses this spell.
 
 After setting a spell
-- Dispels: pick the spell in Options > Debuffs (Cure spell 1-3).
+- Heals and HoTs: pick the spell in Options > Spells > Healing spells, then Select.
+- Dispels: pick the spell in Options > Cure.
 - Buffs: pick the spell in Options > Buffs.
-- Healing on click: type the spell name in Options > Spells (any spellbook spell or macro works).
+- You can also type any spell name or macro in Options > Spells.
 
 Good to know
 - Changes apply at once, no reload needed.

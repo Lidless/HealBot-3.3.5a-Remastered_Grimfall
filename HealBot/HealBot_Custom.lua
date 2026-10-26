@@ -15,6 +15,7 @@
 
 -- Optional file overrides (applied after the in-game settings). Keys: class
 -- token ("CULTIST"), full HealBot class key ("DRUID-Hero@Realm") or "*".
+--   heals   = { ["Spell"]=true },   -- false = not a heal
 --   hots    = { ["Spell"]="C" },    -- "C" my casts, "A" anyone's, false = never
 --   dispels = { ["Spell"]={"Magic","Curse","Poison","Disease"} },  -- false = not a dispel
 --   buffs   = { ["Spell"]=true },   -- false = not a buff
@@ -23,14 +24,15 @@
 HealBot_Custom_Overrides = {}
 
 -- Result of the last scan
-HealBot_Custom = { spells={}, auto={}, hots={}, dispels={}, buffs={}, res=nil, scanned=0 }
+HealBot_Custom = { spells={}, auto={}, heals={}, hots={}, dispels={}, buffs={}, res=nil, scanned=0 }
 
 local strlower, strfind = strlower, strfind
 local TYPES = { "Magic", "Curse", "Poison", "Disease" }
 
-local MODES = { "auto", "hotC", "hotA", "dispel", "buff", "res", "ignore" }
+local MODES = { "auto", "heal", "hotC", "hotA", "dispel", "buff", "res", "ignore" }
 local MODE_LABEL = {
     auto   = "Auto",
+    heal   = "Heal",
     hotC   = "HoT (mine)",
     hotA   = "HoT (all)",
     dispel = "Dispel",
@@ -38,7 +40,7 @@ local MODE_LABEL = {
     res    = "Resurrect",
     ignore = "Ignore",
 }
-local KIND_LABEL = { hot="HoT", dispel="Dispel", buff="Buff", res="Resurrect" }
+local KIND_LABEL = { heal="Heal", hot="HoT", dispel="Dispel", buff="Buff", res="Resurrect" }
 
 local function wipe(t) for k in pairs(t) do t[k] = nil end end
 local function msg(m) DEFAULT_CHAT_FRAME:AddMessage("|cff33ff99HealBot:|r "..m) end
@@ -121,6 +123,10 @@ local function detect(t)
         if strfind(t, "for %d+ min") or strfind(t, "for 1 hour") or strfind(t, "for %d+ hours?") then
             return { kind="buff" }
         end
+        -- direct heal: "Heals a friendly target for 300 to 350", "restores 500 health"
+        if strfind(t, "heals? ") or strfind(t, "healing") or strfind(t, "restores? %d+ health") then
+            return { kind="heal" }
+        end
     end
     return nil
 end
@@ -136,7 +142,7 @@ end
 -- ---------------------------------------------------------------------
 function HealBot_Custom_Scan()
     local C = HealBot_Custom
-    wipe(C.spells); wipe(C.auto); wipe(C.hots); wipe(C.dispels); wipe(C.buffs)
+    wipe(C.spells); wipe(C.auto); wipe(C.heals); wipe(C.hots); wipe(C.dispels); wipe(C.buffs)
     C.res = nil; C.scanned = 0
 
     local key = classKey()
@@ -171,11 +177,13 @@ function HealBot_Custom_Scan()
         local a = C.auto[name]
         if mode == "auto" then
             if a then
-                if a.kind == "hot" then C.hots[name] = "C"
+                if a.kind == "heal" then C.heals[name] = true
+                elseif a.kind == "hot" then C.hots[name] = "C"
                 elseif a.kind == "dispel" then C.dispels[name] = typeList((set and set.types) or a.types)
                 elseif a.kind == "buff" then C.buffs[name] = true
                 elseif a.kind == "res" and not C.res then C.res = name end
             end
+        elseif mode == "heal" then C.heals[name] = true
         elseif mode == "hotC" then C.hots[name] = "C"
         elseif mode == "hotA" then C.hots[name] = "A"
         elseif mode == "dispel" then
@@ -193,7 +201,8 @@ function HealBot_Custom_Scan()
     for _, k in ipairs({ "*", token, key }) do
         local o = k and HealBot_Custom_Overrides[k]
         if o then
-            if o.ignore then for n, v in pairs(o.ignore) do if v then C.hots[n]=nil; C.dispels[n]=nil; C.buffs[n]=nil; if C.res==n then C.res=nil end end end end
+            if o.ignore then for n, v in pairs(o.ignore) do if v then C.heals[n]=nil; C.hots[n]=nil; C.dispels[n]=nil; C.buffs[n]=nil; if C.res==n then C.res=nil end end end end
+            if o.heals then for n, v in pairs(o.heals) do C.heals[n] = v or nil end end
             if o.hots then for n, v in pairs(o.hots) do C.hots[n] = v or nil end end
             if o.dispels then for n, v in pairs(o.dispels) do C.dispels[n] = v or nil end end
             if o.buffs then for n, v in pairs(o.buffs) do C.buffs[n] = v or nil end end
@@ -235,11 +244,16 @@ function HealBot_Custom_DebuffTypes(sName)
 end
 
 function HealBot_Custom_AddToList(list, kind)
-    local src = (kind == "dispels" and HealBot_Custom.dispels) or HealBot_Custom.buffs
+    local srcs
+    if kind == "dispels" then srcs = { HealBot_Custom.dispels }
+    elseif kind == "heals" then srcs = { HealBot_Custom.heals, HealBot_Custom.hots }  -- HoTs are healing spells too
+    else srcs = { HealBot_Custom.buffs } end
     local out, have = {}, {}
     for _, v in ipairs(list or {}) do table.insert(out, v); have[v] = true end
-    for name in pairs(src) do
-        if not have[name] then table.insert(out, name) end
+    for _, src in ipairs(srcs) do
+        for name, v in pairs(src) do
+            if v and not have[name] then table.insert(out, name); have[name] = true end
+        end
     end
     table.sort(out)
     return out
@@ -256,6 +270,7 @@ function HealBot_Custom_Refresh()
         HealBot_setOptions_Timer(50)   -- debuff reset
     end
     if HealBot_Init_SmartCast then HealBot_Init_SmartCast() end
+    if HealBot_Options_ResetSpellDDlists then HealBot_Options_ResetSpellDDlists() end
 end
 
 function HealBot_Custom_Report()
@@ -270,6 +285,7 @@ function HealBot_Custom_Report()
         return #r > 0 and table.concat(r, ", ") or "none"
     end
     msg("class settings: "..classKey()..", spells scanned: "..HealBot_Custom.scanned)
+    msg("Heals: "..names(HealBot_Custom.heals))
     msg("HoTs/shields: "..names(HealBot_Custom.hots))
     msg("Dispels: "..names(HealBot_Custom.dispels))
     msg("Buffs: "..names(HealBot_Custom.buffs))
@@ -292,6 +308,7 @@ HEALBOT_CUSTOM_HELP = {
     " ",
     "|cffffd100Use as|r  (left-click: next, right-click: previous)",
     "- |cffffffffAuto|r: detected from the tooltip, e.g. 'Auto: HoT'. 'Auto: -' means not used.",
+    "- |cffffffffHeal|r: a healing spell; appears in Options > Spells > Healing spells.",
     "- |cffffffffHoT (mine)|r: show an icon on the bars while YOUR cast is active.",
     "- |cffffffffHoT (all)|r: show an icon for anyone's cast of this spell.",
     "- |cffffffffDispel|r: this spell removes debuffs from friends. Tick the types it "..
@@ -301,9 +318,10 @@ HEALBOT_CUSTOM_HELP = {
     "- |cffffffffIgnore|r: HealBot never uses this spell.",
     " ",
     "|cffffd100After setting a spell|r",
-    "- Dispels: pick the spell in Options > Debuffs (Cure spell 1-3).",
+    "- Heals and HoTs: pick the spell in Options > Spells > Healing spells, then Select.",
+    "- Dispels: pick the spell in Options > Cure.",
     "- Buffs: pick the spell in Options > Buffs.",
-    "- Healing on click: type the spell name in Options > Spells (any spellbook spell or macro works).",
+    "- You can also type any spell name or macro in Options > Spells.",
     " ",
     "|cffffd100Good to know|r",
     "- Changes apply at once, no reload needed.",
